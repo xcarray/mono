@@ -1932,11 +1932,12 @@ void
 ves_icall_System_AppDomain_InternalUnload (gint32 domain_id)
 {
 	MonoDomain * domain = mono_domain_get_by_id (domain_id);
+	MonoException * exc = NULL;
 
 	MONO_ARCH_SAVE_REGS;
 
 	if (NULL == domain) {
-		MonoException *exc = mono_get_exception_execution_engine ("Failed to unload domain, domain id not found");
+		exc = mono_get_exception_execution_engine ("Failed to unload domain, domain id not found");
 		mono_raise_exception (exc);
 	}
 	
@@ -1952,7 +1953,9 @@ ves_icall_System_AppDomain_InternalUnload (gint32 domain_id)
 	if (g_getenv ("MONO_NO_UNLOAD"))
 		return;
 
-	mono_domain_unload (domain);
+	mono_domain_try_unload(domain, (MonoObject**)&exc);
+	if (exc)
+		mono_set_pending_exception (exc);
 }
 
 gboolean
@@ -2302,8 +2305,6 @@ mono_domain_unload (MonoDomain *domain)
 {
 	MonoObject *exc = NULL;
 	mono_domain_try_unload (domain, &exc);
-	if (exc)
-		mono_raise_exception ((MonoException*)exc);
 }
 
 /*
