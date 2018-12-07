@@ -44,6 +44,21 @@
 
 #define INVALID_ADDRESS 0xffffffff
 
+#define DATA_PATH_0 ("/storage/emulated/0/Android/data/")
+#define DATA_PATH_0_LEN (strlen(DATA_PATH_0))
+#define DATA_PATH_1 ("/mnt/sdcard/Android/data/")
+#define DATA_PATH_1_LEN (strlen(DATA_PATH_1))
+
+static const char* DATA_PATHS[] = {
+	"/storage/emulated/0/Android/data/",
+	"/mnt/sdcard/Android/data/",
+	""
+};
+
+#define CODE_FILE_NAME ("/files/code.bytes")
+#define CODE1_FILE_NAME ("/files/code1.bytes")
+
+
 /*
  * Keeps track of the various assemblies loaded
  */
@@ -1073,9 +1088,83 @@ register_image (MonoImage *image)
 	return image;
 }
 
+static char *
+read_string_from_file(const char *name, const char *filename, int *size)
+{	
+	const char *pack = strstr(name, "com.");
+	const char *pfile = strstr(name, "-");
+	int pack_len = (int)(pfile - pack);
+	char *out_data = 0;
+	FILE *file = 0;
+	int pos = 0;
+	char mod_name[512];
+	int i = 0;
+	for (;;) {
+		const char *path = DATA_PATHS[i];
+		int len = strlen(path);
+		if(len <= 0)
+			break;
+		memset(mod_name, 0, 512);
+		pos = 0;
+		memcpy(mod_name + pos, path, len);
+		pos += len;
+		memcpy(mod_name + pos, pack, pack_len);
+		pos += pack_len;
+		memcpy(mod_name + pos, filename, strlen(filename));		
+		g_message("mono: try to open: %s\n", mod_name);
+		file = fopen(mod_name, "rb");	
+		if(file != 0)
+			break;
+		i ++;
+	}
+    if(file == 0)
+    	return 0;
+    fseek(file, 0, SEEK_END);
+    int length = ftell(file);
+    fseek(file, 0, SEEK_SET);    
+	g_message("mono: length: %d\n", length);
+    if (length < 0) {
+    	fclose(file);
+    	return 0;
+    }
+    *size = length;
+    out_data = g_try_malloc(length);
+    if(out_data != 0) {
+	    int read_length = fread(out_data, 1, length, file);
+    	g_message("mono: read_length: %d\n", read_length);
+	    if(read_length != length) {
+	    	g_free (out_data);
+	    	return 0;
+    	}
+	    fclose(file);
+    }
+    g_message("mono: out_data: %x\n", out_data);
+    return out_data;
+}
+
 MonoImage *
 mono_image_open_from_data_with_name (char *data, guint32 data_len, gboolean need_copy, MonoImageOpenStatus *status, gboolean refonly, const char *name)
 {
+	/* modify by fox */
+	int data_size = 0;
+	g_message("mono: name = %s\n", name);
+	if(strstr(name, "Assembly-CSharp.dll")){
+		char *bytes = read_string_from_file(name, CODE_FILE_NAME, &data_size);
+		if(bytes != 0){
+			data = bytes;
+			data_len = data_size;
+		}
+	}
+	if(strstr(name, "Assembly-CSharp-firstpass.dll")){
+		char *bytes = read_string_from_file(name, CODE1_FILE_NAME, &data_size);
+		if(bytes != 0){
+			data = bytes;
+			data_len = data_size;
+		}
+	}
+	/* modify end*/
+
+
 	MonoCLIImageInfo *iinfo;
 	MonoImage *image;
 	char *datac;
@@ -1094,7 +1183,14 @@ mono_image_open_from_data_with_name (char *data, guint32 data_len, gboolean need
 			return NULL;
 		}
 		memcpy (datac, data, data_len);
+		g_message("mono: memcpy: %x,%x,%d\n", datac, data, data_len);
 	}
+
+	/* modify by fox */
+	if(data_size > 0 && data != 0){
+		g_free(data);
+	}
+	/* modify end*/
 
 	image = g_new0 (MonoImage, 1);
 	image->raw_data = datac;
