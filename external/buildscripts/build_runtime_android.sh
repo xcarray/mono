@@ -102,13 +102,13 @@ fi
 
 function clean_build_krait_patch
 {
-       local KRAIT_PATCH_REPO="git://github.com/Unity-Technologies/krait-signal-handler.git"
+       local KRAIT_PATCH_REPO="git://github.com/xcarray/krait-signal-handler.git"
        if [ ${UNITY_THISISABUILDMACHINE:+1} ]; then
                echo "Trusting TC to have cloned krait patch repository for us"
        elif [ -d "$KRAIT_PATCH_PATH" ]; then
                echo "Krait patch repository already cloned"
        else
-               git clone --branch "master" "$KRAIT_PATCH_REPO" "$KRAIT_PATCH_PATH"
+               git clone --branch "r10e" "$KRAIT_PATCH_REPO" "$KRAIT_PATCH_PATH"
        fi
        (cd "$KRAIT_PATCH_PATH" && ./build.pl)
 }
@@ -150,9 +150,9 @@ rm -rf $OUTDIR
 
 clean_build_krait_patch
 
-clean_build "$CCFLAGS_ARMv5_CPU" "$LDFLAGS_ARMv5" "$OUTDIR/armv5"
-clean_build "$CCFLAGS_ARMv6_VFP" "$LDFLAGS_ARMv5" "$OUTDIR/armv6_vfp"
-clean_build "$CCFLAGS_ARMv7_VFP" "$LDFLAGS_ARMv7" "$OUTDIR/armv7a"
+# clean_build "$CCFLAGS_ARMv5_CPU" "$LDFLAGS_ARMv5" "$OUTDIR/armv5"
+# clean_build "$CCFLAGS_ARMv6_VFP" "$LDFLAGS_ARMv5" "$OUTDIR/armv6_vfp"
+# clean_build "$CCFLAGS_ARMv7_VFP" "$LDFLAGS_ARMv7" "$OUTDIR/armv7a"
 
 # works only with ndk-r6b and later
 source ${BUILDSCRIPTSDIR}/build_runtime_android_x86.sh dontclean
