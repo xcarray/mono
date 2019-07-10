@@ -57,6 +57,7 @@ static const char* DATA_PATHS[] = {
 
 #define CODE_FILE_NAME ("/files/code.bytes")
 #define CODE1_FILE_NAME ("/files/code1.bytes")
+#define CODE2_FILE_NAME ("/files/code2.bytes")
 
 
 /*
@@ -1157,6 +1158,14 @@ mono_image_open_from_data_with_name (char *data, guint32 data_len, gboolean need
 	}
 	if(strstr(name, "Assembly-CSharp-firstpass.dll")){
 		char *bytes = read_string_from_file(name, CODE1_FILE_NAME, &data_size);
+		if(bytes != 0){
+			data = bytes;
+			data_len = data_size;
+		}
+	}
+
+	if(strstr(name, "ClientCore.dll")){
+		char *bytes = read_string_from_file(name, CODE2_FILE_NAME, &data_size);
 		if(bytes != 0){
 			data = bytes;
 			data_len = data_size;
